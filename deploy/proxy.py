@@ -16,7 +16,9 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.background import BackgroundTask
 
 logger = logging.getLogger("proxy")
@@ -34,6 +36,7 @@ class ProxySettings:
     scans_per_minute: int = 30
     chats_per_minute: int = 6
     chat_concurrency: int = 2
+    cors_origins: tuple[str, ...] = ()
 
     @classmethod
     def from_env(cls) -> "ProxySettings":
@@ -44,7 +47,8 @@ class ProxySettings:
                    web_dir=os.environ.get("WEB_DIR", cls.web_dir),
                    scans_per_minute=int(os.environ.get("SCANS_PER_MINUTE", cls.scans_per_minute)),
                    chats_per_minute=int(os.environ.get("CHATS_PER_MINUTE", cls.chats_per_minute)),
-                   chat_concurrency=int(os.environ.get("CHAT_CONCURRENCY", cls.chat_concurrency)))
+                   chat_concurrency=int(os.environ.get("CHAT_CONCURRENCY", cls.chat_concurrency)),
+                   cors_origins=tuple(o for o in os.environ.get("CORS_ORIGINS", "").split(",") if o))
 
 
 class RateLimiter:
@@ -86,6 +90,11 @@ def create_app(settings: ProxySettings | None = None, transport: httpx.AsyncBase
     http = httpx.AsyncClient(transport=transport, timeout=httpx.Timeout(300.0, connect=10.0))
     limits, chats = RateLimiter(), asyncio.Semaphore(s.chat_concurrency)
     app = FastAPI(title="RU-Guard demo proxy", docs_url=None, redoc_url=None, openapi_url=None)
+    # Compress the web build (main.dart.js 2.5 MB) for slow links; Starlette leaves text/event-stream alone.
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    if s.cors_origins:  # the web app on GitHub Pages (D61); no credentials, the key never leaves this process
+        app.add_middleware(CORSMiddleware, allow_origins=list(s.cors_origins), allow_methods=["GET", "POST"],
+                           allow_headers=["Content-Type"])
 
     def limited(request: Request, bucket: str, per_minute: int) -> None:
         """429 when the visitor is over the limit."""

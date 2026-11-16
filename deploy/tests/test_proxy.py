@@ -104,3 +104,20 @@ def test_upstream_down_is_502_without_details(tmp_path):
 def test_rate_limiter_window():
     rl = RateLimiter()
     assert rl.allow("a", "s", 1) and not rl.allow("a", "s", 1) and rl.allow("b", "s", 1)
+
+
+def test_web_build_is_gzipped_and_stream_is_not(tmp_path):
+    (tmp_path / "main.dart.js").write_text("var x = 1;" * 500, encoding="utf-8")
+    c = client(tmp_path, [])
+    assert c.get("/main.dart.js", headers={"Accept-Encoding": "gzip"}).headers.get("content-encoding") == "gzip"
+    r = c.get("/demo/chat/stream", params={"question": "q"}, headers={"Accept-Encoding": "gzip"})
+    assert r.headers.get("content-encoding") is None and "event: final" in r.text
+
+
+def test_cors_only_for_the_pages_origin(tmp_path):
+    c = client(tmp_path, [], cors_origins=("https://f243077-cell.github.io",))
+    pre = {"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"}
+    ok = c.options("/guard/v1/scan", headers={"Origin": "https://f243077-cell.github.io", **pre})
+    bad = c.options("/guard/v1/scan", headers={"Origin": "https://evil.example", **pre})
+    assert ok.headers.get("access-control-allow-origin") == "https://f243077-cell.github.io"
+    assert "access-control-allow-origin" not in bad.headers

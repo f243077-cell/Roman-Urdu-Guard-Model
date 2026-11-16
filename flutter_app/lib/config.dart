@@ -13,8 +13,22 @@ class AppConfig {
         guardApiKey: const String.fromEnvironment('GUARD_API_KEY'),
       );
 
-  static String _absolute(String url) =>
-      url.startsWith('/') ? Uri.base.resolve(url).toString().replaceFirst(RegExp(r'/$'), '') : url;
+  /// A relative URL goes to the backend named by `?api=` (the GitHub Pages site, D61), else to this page's origin.
+  static String _absolute(String url) {
+    if (!url.startsWith('/')) return url;
+    final api = _apiBase();
+    return api != null ? '$api$url' : Uri.base.resolve(url).toString().replaceFirst(RegExp(r'/$'), '');
+  }
+
+  /// `?api=https://<name>.trycloudflare.com` (or `.lhr.life`): only these free-tunnel hosts over https are accepted,
+  /// so a crafted link cannot send what a visitor types to some other server.
+  static String? _apiBase() {
+    final raw = Uri.base.queryParameters['api'];
+    final u = raw == null ? null : Uri.tryParse(raw);
+    if (u == null || u.scheme != 'https') return null;
+    final ok = u.host.endsWith('.trycloudflare.com') || u.host.endsWith('.lhr.life');
+    return ok ? 'https://${u.host}' : null;
+  }
 
   final String guardUrl;
   final String demoUrl;

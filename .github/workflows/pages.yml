@@ -1,0 +1,47 @@
+# Web playground on GitHub Pages (D61). Static files only: no key, no backend. Visitors open
+#   https://f243077-cell.github.io/Roman-Urdu-Guard-Model/?api=https://<tunnel>
+# where <tunnel> is the address printed by deploy/public_from_laptop.sh (the proxy adds the key on the laptop).
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["flutter_app/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.7"
+          channel: stable
+      - name: Build web
+        working-directory: flutter_app
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /Roman-Urdu-Guard-Model/ \
+            --dart-define=GUARD_URL=/guard --dart-define=DEMO_URL=/demo
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: flutter_app/build/web
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
