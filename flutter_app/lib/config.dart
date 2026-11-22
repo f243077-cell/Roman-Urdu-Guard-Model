@@ -22,12 +22,14 @@ class AppConfig {
 
   /// `?api=https://<name>.trycloudflare.com` (or `.lhr.life`): only these free-tunnel hosts over https are accepted,
   /// so a crafted link cannot send what a visitor types to some other server.
+  /// Without a valid `?api=`, API_BASE from the build is used: the always-on backend (D62), set by pages.yml.
   static String? _apiBase() {
+    const builtIn = String.fromEnvironment('API_BASE');
     final raw = Uri.base.queryParameters['api'];
     final u = raw == null ? null : Uri.tryParse(raw);
-    if (u == null || u.scheme != 'https') return null;
-    final ok = u.host.endsWith('.trycloudflare.com') || u.host.endsWith('.lhr.life');
-    return ok ? 'https://${u.host}' : null;
+    final ok = u != null && u.scheme == 'https' && (u.host.endsWith('.trycloudflare.com') || u.host.endsWith('.lhr.life'));
+    if (ok) return 'https://${u.host}';
+    return builtIn.isEmpty ? null : builtIn.replaceFirst(RegExp(r'/$'), '');
   }
 
   final String guardUrl;

@@ -32,7 +32,8 @@ jobs:
         run: |
           flutter pub get
           flutter build web --release --base-href /Roman-Urdu-Guard-Model/ \
-            --dart-define=GUARD_URL=/guard --dart-define=DEMO_URL=/demo
+            --dart-define=GUARD_URL=/guard --dart-define=DEMO_URL=/demo \
+            --dart-define=API_BASE=${{ vars.API_BASE }}   # always-on backend (D62); empty: only ?api= works
       - uses: actions/upload-pages-artifact@v3
         with:
           path: flutter_app/build/web

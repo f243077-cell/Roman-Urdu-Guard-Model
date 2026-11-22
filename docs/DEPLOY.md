@@ -1,6 +1,22 @@
 # Hosted demo
 
-## Current setup: GitHub Pages plus the laptop (D61)
+## Always on: free Oracle Cloud VM (D62)
+
+The whole backend runs on one Oracle Cloud **Always Free** VM; the web app stays on GitHub Pages. The link is fixed and the laptop can be off.
+
+**Owner, once (about 30 minutes):**
+
+1. Sign up at https://signup.cloud.oracle.com (free tier; a card is asked for identity checking only). Keep the account on **Always Free**: do not upgrade to Pay As You Go.
+2. Compute, Instances, Create instance: image **Canonical Ubuntu 24.04**, shape **Ampere VM.Standard.A1.Flex** with **4 OCPU, 24 GB** (the Always Free limit). In "Add SSH keys" choose "Generate a key pair" and download the private key. If you see "Out of capacity", try another availability domain or later.
+3. Networking, the instance's subnet, Default security list, Add ingress rules: source `0.0.0.0/0`, TCP, destination ports `80` and `443`.
+4. Connect: `ssh -i <downloaded key> ubuntu@<public IP>` (or the console's Cloud Shell), then run
+   `curl -fsSL https://raw.githubusercontent.com/f243077-cell/Roman-Urdu-Guard-Model/main/deploy/oracle/setup.sh | bash -s <public IP>`
+   It installs Docker, downloads and checks the model, makes a new key in `~/ru-guard/.env`, starts everything and prints `Backend: https://<ip-with-dashes>.sslip.io` (20 to 40 minutes the first time).
+5. GitHub repository, Settings, Secrets and variables, Actions, **Variables**: add `API_BASE` = that backend address. Then Actions, `pages`, Run workflow.
+
+The demo is then https://f243077-cell.github.io/Roman-Urdu-Guard-Model/. To update after a code change, run the same command on the VM again. Oracle may reclaim an Always Free VM that stays idle for 7 days.
+
+## From the laptop: GitHub Pages plus a free tunnel (D61)
 
 ```
 browser ──https──> GitHub Pages (Flutter web, no key)

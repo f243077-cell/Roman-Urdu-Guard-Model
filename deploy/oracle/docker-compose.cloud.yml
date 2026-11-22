@@ -1,0 +1,45 @@
+# Always-on demo on a free Oracle Cloud VM (D62). Used by deploy/oracle/setup.sh together with docker-compose.yml:
+#   docker compose -f docker-compose.yml -f deploy/oracle/docker-compose.cloud.yml --profile demo up -d --build
+# Only Caddy is reachable from outside (80, 443). It gets a free HTTPS certificate for PUBLIC_HOST (<ip>.sslip.io)
+# and passes requests to deploy/proxy.py, which adds the guard-api key and limits each visitor.
+services:
+  ollama:
+    ports: !reset []
+    restart: unless-stopped
+  guard-api:
+    ports: !reset []
+    restart: unless-stopped
+    environment:
+      RATE_LIMIT: 100000/minute   # every call comes from the proxy; the proxy limits each visitor
+  demo-rag:
+    ports: !reset []
+    restart: unless-stopped
+  proxy:
+    profiles: ["demo"]
+    image: python:3.12-slim
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir -q fastapi==0.162.2 uvicorn==0.54.0 httpx==0.28.1 &&
+             uvicorn deploy.proxy:app --host 0.0.0.0 --port 7860 --log-level warning"
+    environment:
+      GUARD_UPSTREAM: http://guard-api:8001
+      DEMO_UPSTREAM: http://demo-rag:8002
+      GUARD_API_KEY: ${GUARD_API_KEY:?set GUARD_API_KEY in .env}
+      CORS_ORIGINS: https://f243077-cell.github.io
+      WEB_DIR: /app/web   # not present: the web app is served by GitHub Pages
+    volumes:
+      - ./deploy:/app/deploy:ro
+    restart: unless-stopped
+    depends_on: [guard-api, demo-rag]
+  caddy:
+    profiles: ["demo"]
+    image: caddy:2.8.4
+    ports: ["80:80", "443:443"]
+    command: caddy reverse-proxy --from ${PUBLIC_HOST:?set PUBLIC_HOST in .env} --to proxy:7860
+    volumes:
+      - caddy_data:/data
+    restart: unless-stopped
+    depends_on: [proxy]
+
+volumes:
+  caddy_data: {}
