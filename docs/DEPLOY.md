@@ -1,4 +1,27 @@
-# Hosted demo (Hugging Face Space)
+# Hosted demo
+
+## Current setup: GitHub Pages plus the laptop (D61)
+
+```
+browser ──https──> GitHub Pages (Flutter web, no key)
+   │
+   └──https──> free tunnel ──> proxy :7860 on the laptop (deploy/proxy.py) ──> guard-api :8001, demo-rag :8002 (Docker) ──> Ollama
+                               adds the key from .env, rate limits, CORS only for https://f243077-cell.github.io
+```
+
+On this Hugging Face account the Docker SDK is marked paid and CPU basic is not offered, so the Space below cannot run for free.
+
+**One-time setup (owner):** GitHub repository, Settings, Pages, Source: **GitHub Actions**. Then Actions, `pages`, Run workflow (it also runs on each push that changes `flutter_app/`). The site is `https://f243077-cell.github.io/Roman-Urdu-Guard-Model/`.
+
+**Each time you want the demo online:**
+
+1. Start Ollama and the stack: `docker compose -f docker-compose.yml -f docker-compose.host-ollama.yml --profile demo up -d guard-api demo-rag`. Restart demo-rag after guard-api is healthy (`docker compose ... restart demo-rag`); its start-up ingest needs the guard, or every chunk is quarantined.
+2. Run `bash deploy/public_from_laptop.sh`. It reads `GUARD_API_KEY` from `.env`, starts the proxy on `127.0.0.1:7860` and opens a tunnel. It prints the tunnel address, for example `https://abc.lhr.life`.
+3. Share `https://f243077-cell.github.io/Roman-Urdu-Guard-Model/?api=https://abc.lhr.life`. The tunnel address itself also works (the proxy serves the same web build), but loads the 2.5 MB app through the tunnel.
+
+The page accepts only `https://*.trycloudflare.com` and `https://*.lhr.life` in `?api=`. The demo stops when the script stops or the laptop sleeps, and the address changes at every start. The key stays in `.env` and in the proxy process.
+
+## Earlier design: one Hugging Face Space (D60, not available on this account)
 
 One free Hugging Face Space (Docker, CPU basic: 2 vCPU, 16 GB) runs the whole demo in one container (decision D60):
 

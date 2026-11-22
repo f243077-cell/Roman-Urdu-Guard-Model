@@ -8,7 +8,8 @@
 #   (RATE_LIMIT is high because every call reaches guard-api from the proxy; the proxy limits each visitor.)
 set -euo pipefail
 cd "$(dirname "$0")/.."
-CLOUDFLARED="${CLOUDFLARED:-cloudflared}"
+CLOUDFLARED="${CLOUDFLARED:-$(command -v cloudflared || echo "${LOCALAPPDATA:-}/cloudflared/cloudflared.exe")}"
+PY="$(ls .venv/Scripts/python.exe .venv/bin/python 2>/dev/null | head -1 || true)"; PY="${PY:-python}"
 GUARD_API_KEY="$(grep '^GUARD_API_KEY=' .env | cut -d= -f2-)"
 export GUARD_API_KEY WEB_DIR=flutter_app/build/web
 # The web app on GitHub Pages calls this proxy from another origin (D61).
@@ -18,9 +19,10 @@ if [ ! -f "$WEB_DIR/index.html" ] || ! grep -q '/guard' "$WEB_DIR/main.dart.js";
 fi
 curl -sf http://127.0.0.1:8001/health > /dev/null || { echo "guard-api is not running" >&2; exit 1; }
 curl -sf http://127.0.0.1:8002/health > /dev/null || { echo "demo-rag is not running" >&2; exit 1; }
-uvicorn deploy.proxy:app --host 127.0.0.1 --port 7860 --log-level warning &
+"$PY" -m uvicorn deploy.proxy:app --host 127.0.0.1 --port 7860 --log-level warning &
 trap 'kill %1 2>/dev/null' EXIT
 sleep 3
+curl -sf http://127.0.0.1:7860/guard/health > /dev/null || { echo "the proxy did not start" >&2; exit 1; }
 # The public address is printed by the tunnel ("https://<random>.trycloudflare.com" or "...lhr.life").
 # Cloudflare's quick tunnel is fast but its free API sometimes does not answer: retry, then fall back to
 # localhost.run over SSH (also free and account-less, but throttled to a few KB/s, too slow for the 1st page load).
