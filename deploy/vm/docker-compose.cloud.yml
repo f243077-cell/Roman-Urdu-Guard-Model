@@ -1,5 +1,5 @@
-# Always-on demo on a free Oracle Cloud VM (D62). Used by deploy/oracle/setup.sh together with docker-compose.yml:
-#   docker compose -f docker-compose.yml -f deploy/oracle/docker-compose.cloud.yml --profile demo up -d --build
+# Always-on demo on a cloud VM (D62, D64: Azure for Students). Used by deploy/vm/setup.sh together with docker-compose.yml:
+#   docker compose -f docker-compose.yml -f deploy/vm/docker-compose.cloud.yml --profile demo up -d --build
 # Only Caddy is reachable from outside (80, 443). It gets a free HTTPS certificate for PUBLIC_HOST (<ip>.sslip.io)
 # and passes requests to deploy/proxy.py, which adds the guard-api key and limits each visitor.
 services:

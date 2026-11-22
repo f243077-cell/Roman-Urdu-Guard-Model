@@ -1,20 +1,21 @@
 # Hosted demo
 
-## Always on: free Oracle Cloud VM (D62)
+## Always on: a cloud VM with Azure for Students (D62, D64)
 
-The whole backend runs on one Oracle Cloud **Always Free** VM; the web app stays on GitHub Pages. The link is fixed and the laptop can be off.
+The whole backend runs on one Ubuntu VM; the web app stays on GitHub Pages. The link is fixed and the laptop can be off. Oracle's Always Free tier (D62) does not accept Pakistan, so the VM is on **Azure for Students**: $100 credit a year with a university email, no card.
 
 **Owner, once (about 30 minutes):**
 
-1. Sign up at https://signup.cloud.oracle.com (free tier; a card is asked for identity checking only). Keep the account on **Always Free**: do not upgrade to Pay As You Go.
-2. Compute, Instances, Create instance: image **Canonical Ubuntu 24.04**, shape **Ampere VM.Standard.A1.Flex** with **4 OCPU, 24 GB** (the Always Free limit). In "Add SSH keys" choose "Generate a key pair" and download the private key. If you see "Out of capacity", try another availability domain or later.
-3. Networking, the instance's subnet, Default security list, Add ingress rules: source `0.0.0.0/0`, TCP, destination ports `80` and `443`.
-4. Connect: `ssh -i <downloaded key> ubuntu@<public IP>` (or the console's Cloud Shell), then run
-   `curl -fsSL https://raw.githubusercontent.com/f243077-cell/Roman-Urdu-Guard-Model/main/deploy/oracle/setup.sh | bash -s <public IP>`
-   It installs Docker, downloads and checks the model, makes a new key in `~/ru-guard/.env`, starts everything and prints `Backend: https://<ip-with-dashes>.sslip.io` (20 to 40 minutes the first time).
-5. GitHub repository, Settings, Secrets and variables, Actions, **Variables**: add `API_BASE` = that backend address. Then Actions, `pages`, Run workflow.
+1. Sign up at https://azure.microsoft.com/free/students with the university email.
+2. Portal, Create a resource, **Virtual machine**: subscription *Azure for Students*, new resource group `ru-guard`, a region the student policy allows (the closest one), image **Ubuntu Server 24.04 LTS (x64)**, size **Standard_B2s** (2 vCPU, 4 GB), authentication **SSH public key**, user `azureuser`, *Generate new key pair*. Public inbound ports: allow **SSH (22), HTTP (80), HTTPS (443)**. Review + create, then download the private key.
+3. Connect: `ssh -i <downloaded key>.pem azureuser@<public IP>` (or the portal's *Connect, SSH using Azure CLI*), then run
+   `curl -fsSL https://raw.githubusercontent.com/f243077-cell/Roman-Urdu-Guard-Model/main/deploy/vm/setup.sh | bash -s <public IP>`
+   It adds a 4 GB swap file, installs Docker, downloads and checks the model, makes a new key in `~/ru-guard/.env`, starts everything and prints `Backend: https://<ip-with-dashes>.sslip.io` (20 to 40 minutes the first time).
+4. GitHub repository, Settings, Secrets and variables, Actions, **Variables**: add `API_BASE` = that backend address. Then Actions, `pages`, Run workflow.
 
-The demo is then https://f243077-cell.github.io/Roman-Urdu-Guard-Model/. To update after a code change, run the same command on the VM again. Oracle may reclaim an Always Free VM that stays idle for 7 days.
+The demo is then https://f243077-cell.github.io/Roman-Urdu-Guard-Model/. To update after a code change, run the same command on the VM again.
+
+**Credit:** a B2s VM with its disk and public IP uses most of the $100 in about 3 months (see *Cost Management* in the portal). Stopping (deallocating) the VM stops the compute charge; the credit renews each year while you are a student. When the credit ends, Azure stops the VM; nothing is charged to you.
 
 ## From the laptop: GitHub Pages plus a free tunnel (D61)
 
@@ -40,7 +41,7 @@ The page accepts only `https://*.trycloudflare.com` and `https://*.lhr.life` in 
 ## How the API key is kept secret
 
 - The web app is built with `GUARD_URL=/guard` and `DEMO_URL=/demo` and **no key** (checked: the key is in 0 files of the build). It calls the backend from `API_BASE` or `?api=`.
-- The key lives only in `.env` on the machine that runs the backend (on the Oracle VM, made by `deploy/oracle/setup.sh`). guard-api, demo-rag and Ollama are not reachable from outside; only the proxy is (through Caddy or the tunnel).
+- The key lives only in `.env` on the machine that runs the backend (on the Oracle VM, made by `deploy/vm/setup.sh`). guard-api, demo-rag and Ollama are not reachable from outside; only the proxy is (through Caddy or the tunnel).
 - The proxy adds the key to scans and drops any key a browser sends. It exposes only `/guard/health`, `/guard/v1/scan`, `/demo/health`, `/demo/chat`, `/demo/chat/stream` (no `/v1/stats`, no batch, no API docs), and allows cross-origin calls only from `https://f243077-cell.github.io`.
 - Limits per visitor (first `X-Forwarded-For` address): 30 scans and 6 chat questions a minute; at most 2 chat answers run at once (`SCANS_PER_MINUTE`, `CHATS_PER_MINUTE`, `CHAT_CONCURRENCY`). Requests over 64 KB are refused.
 
