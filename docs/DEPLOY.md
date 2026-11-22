@@ -37,38 +37,22 @@ On this Hugging Face account the Docker SDK is marked paid and CPU basic is not 
 
 The page accepts only `https://*.trycloudflare.com` and `https://*.lhr.life` in `?api=`. The demo stops when the script stops or the laptop sleeps, and the address changes at every start. The key stays in `.env` and in the proxy process.
 
-## Earlier design: one Hugging Face Space (D60, not available on this account)
-
-One free Hugging Face Space (Docker, CPU basic: 2 vCPU, 16 GB) runs the whole demo in one container (decision D60):
-
-```
-browser ──https──> proxy :7860 (deploy/proxy.py) ──> guard-api :8001 ──> Ollama :11434 (ru-guard-1.5b-v2, qwen2.5:1.5b-instruct)
-  (Flutter web,                 adds the API key        demo-rag  :8002 ──┘
-   same origin)                 rate limits per visitor
-```
-
 ## How the API key is kept secret
 
-- The web app is built with `GUARD_URL=/guard` and `DEMO_URL=/demo` and **no key**; it calls its own origin, so there is no CORS and nothing secret in the JavaScript (checked: the key is in 0 files of the build).
-- `deploy/start.sh` creates a new `GUARD_API_KEY` and `AUDIT_SALT` at every start. They exist only inside the container; guard-api and demo-rag listen on `127.0.0.1` only.
-- The proxy adds the key to scans and drops any key a browser sends. It exposes only `/guard/health`, `/guard/v1/scan`, `/demo/health`, `/demo/chat`, `/demo/chat/stream` (no `/v1/stats`, no batch, no API docs).
+- The web app is built with `GUARD_URL=/guard` and `DEMO_URL=/demo` and **no key** (checked: the key is in 0 files of the build). It calls the backend from `API_BASE` or `?api=`.
+- The key lives only in `.env` on the machine that runs the backend (on the Oracle VM, made by `deploy/oracle/setup.sh`). guard-api, demo-rag and Ollama are not reachable from outside; only the proxy is (through Caddy or the tunnel).
+- The proxy adds the key to scans and drops any key a browser sends. It exposes only `/guard/health`, `/guard/v1/scan`, `/demo/health`, `/demo/chat`, `/demo/chat/stream` (no `/v1/stats`, no batch, no API docs), and allows cross-origin calls only from `https://f243077-cell.github.io`.
 - Limits per visitor (first `X-Forwarded-For` address): 30 scans and 6 chat questions a minute; at most 2 chat answers run at once (`SCANS_PER_MINUTE`, `CHATS_PER_MINUTE`, `CHAT_CONCURRENCY`). Requests over 64 KB are refused.
 
 ## Visitors do not see each other's work
 
-The playground's history is kept in browser memory only (one tab, gone on reload). demo-rag answers each question on its own (no shared conversation). guard-api's audit log stores a keyed hash and the length, never the text; the database is in `/tmp` and is lost when the Space restarts. The only shared numbers, `/v1/stats`, are not reachable from outside.
+The playground's history is kept in browser memory only (one tab, gone on reload). demo-rag answers each question on its own (no shared conversation). guard-api's audit log stores a keyed hash and the length, never the text. The only shared numbers, `/v1/stats`, are not reachable from outside.
 
-## Create or update the Space
+## Speed
 
-1. On huggingface.co: New Space, SDK **Docker**, template **Blank**, hardware **CPU basic (free)**, visibility Public.
-2. Add the two files from `deploy/space/`: `Dockerfile` and `README.md` (its front matter sets `sdk: docker` and `app_port: 7860`).
-3. The Space builds by itself (about 20 to 40 minutes: Flutter SDK, Python packages, Ollama, two 1 GB models). The Dockerfile clones this repository at `REF` (default `main`), so a code change reaches the Space with **Settings, Factory rebuild**.
+CPU only: a scan takes about 1 s, a chat answer 30 to 90 s, and visitors queue.
 
-No secrets need to be set in the Space settings.
-
-## Limits of the free tier
-
-CPU only: a scan takes about 1 s, a chat answer 30 to 90 s, and visitors queue. The Space sleeps after a period without visitors; the first visit after that waits for the start (a few minutes). Disk is not kept between restarts.
+The Hugging Face Space of D60 was removed (its Docker hardware is paid on this account).
 
 ## Local check of the same setup
 
