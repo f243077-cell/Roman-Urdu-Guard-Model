@@ -21,7 +21,7 @@ fi
 # Some images (Oracle's Ubuntu) reject inbound traffic except SSH in iptables: open HTTP and HTTPS for Caddy.
 # On Azure the network security group must also allow 80 and 443 (docs/DEPLOY.md).
 for port in 80 443; do
-  sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null || sudo iptables -I INPUT 5 -p tcp --dport "$port" -j ACCEPT
+  sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null || sudo iptables -I INPUT 1 -p tcp --dport "$port" -j ACCEPT
 done
 sudo netfilter-persistent save
 
