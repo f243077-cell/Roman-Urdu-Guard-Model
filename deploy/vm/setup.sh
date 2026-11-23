@@ -24,6 +24,10 @@ for port in 80 443; do
   sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null || sudo iptables -I INPUT 1 -p tcp --dport "$port" -j ACCEPT
 done
 sudo netfilter-persistent save
+# On Azure, containers with the default MTU (1500) cannot finish TLS handshakes (pip, model pulls, certificates).
+if ! grep -q '"mtu"' /etc/docker/daemon.json 2>/dev/null; then
+  echo '{"mtu": 1400}' | sudo tee /etc/docker/daemon.json > /dev/null && sudo systemctl restart docker
+fi
 
 if [ -d "$DIR/.git" ]; then git -C "$DIR" pull -q; else git clone -q --depth 1 "$REPO.git" "$DIR"; fi
 cd "$DIR"

@@ -43,3 +43,10 @@ services:
 
 volumes:
   caddy_data: {}
+
+# Azure drops full-size (1500) packets from containers: TLS handshakes to pypi.org and others time out.
+# 1400 matches the Docker daemon setting written by deploy/vm/setup.sh.
+networks:
+  default:
+    driver_opts:
+      com.docker.network.driver.mtu: "1400"
