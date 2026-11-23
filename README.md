@@ -120,7 +120,7 @@ python evals/run_quality.py --guard off && python evals/run_quality.py --guard o
 
 Demo video: [docs/media/ru-guard-demo.webm](docs/media/ru-guard-demo.webm) (88 s, silent screen recording of the playground on the owner's laptop, 2026-11-16). It follows the scan, compare and chat scenes of [docs/DEMO.md](docs/DEMO.md); waits for the CPU chat model are cut, so the answers appear faster than they do live (about 30 to 90 s each). A narrated version is still the owner's.
 
-Online playground: `https://f243077-cell.github.io/Roman-Urdu-Guard-Model/?api=<tunnel address>`. The backend runs on the owner's laptop behind a free tunnel, so it is online only while the owner runs `deploy/public_from_laptop.sh`, and the tunnel address changes each time ([docs/DEPLOY.md](docs/DEPLOY.md)). The API key stays on the laptop.
+Online playground: https://f243077-cell.github.io/Roman-Urdu-Guard-Model/. The web app is on GitHub Pages; the backend (guard-api, demo-rag, Ollama, on CPU) runs on an Azure for Students VM behind a proxy that holds the API key and limits each visitor ([docs/DEPLOY.md](docs/DEPLOY.md)). A scan takes about 2 s; a chat answer 30 to 90 s.
 
 ## Repository map
 
