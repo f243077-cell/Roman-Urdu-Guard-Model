@@ -1,6 +1,6 @@
-# Web playground on GitHub Pages (D61). Static files only: no key, no backend. Visitors open
-#   https://f243077-cell.github.io/Roman-Urdu-Guard-Model/?api=https://<tunnel>
-# where <tunnel> is the address printed by deploy/public_from_laptop.sh (the proxy adds the key on the laptop).
+# Web playground on GitHub Pages (D61, D64). Static files only: no key, no backend. The app calls the always-on
+# backend in the repository variable API_BASE (the Azure VM, deploy/vm/setup.sh). A laptop tunnel still works with
+#   https://f243077-cell.github.io/Roman-Urdu-Guard-Model/?api=https://<tunnel>   (deploy/public_from_laptop.sh)
 name: pages
 
 on:
