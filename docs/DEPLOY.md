@@ -7,7 +7,7 @@ The whole backend runs on one Ubuntu VM; the web app stays on GitHub Pages. The 
 **Owner, once (about 30 minutes):**
 
 1. Sign up at https://azure.microsoft.com/free/students with the university email.
-2. Portal, Create a resource, **Virtual machine**: subscription *Azure for Students*, new resource group `ru-guard`, a region the student policy allows (the closest one), image **Ubuntu Server 24.04 LTS (x64)**, size **Standard_B2s** (2 vCPU, 4 GB), authentication **SSH public key**, user `azureuser`, *Generate new key pair*. Public inbound ports: allow **SSH (22), HTTP (80), HTTPS (443)**. Review + create, then download the private key.
+2. Portal, Create a resource, **Virtual machine**: subscription *Azure for Students*, new resource group `ru-guard`, a region the student policy allows (this subscription: centralindia, austriaeast, koreacentral, indiasouthcentral, polandcentral; we use **Central India**), image **Ubuntu Server 24.04 LTS (x64)**, size **Standard_B2als_v2** (2 vCPU, 4 GB; Standard_B2s is not offered to this subscription in Central India), authentication **SSH public key**, user `azureuser`, *Generate new key pair*. Public inbound ports: allow **SSH (22), HTTP (80), HTTPS (443)**. Review + create, then download the private key.
 3. Connect: `ssh -i <downloaded key>.pem azureuser@<public IP>` (or the portal's *Connect, SSH using Azure CLI*), then run
    `curl -fsSL https://raw.githubusercontent.com/f243077-cell/Roman-Urdu-Guard-Model/main/deploy/vm/setup.sh | bash -s <public IP>`
    It adds a 4 GB swap file, installs Docker, downloads and checks the model, makes a new key in `~/ru-guard/.env`, starts everything and prints `Backend: https://<ip-with-dashes>.sslip.io` (20 to 40 minutes the first time).
@@ -15,7 +15,7 @@ The whole backend runs on one Ubuntu VM; the web app stays on GitHub Pages. The 
 
 The demo is then https://f243077-cell.github.io/Roman-Urdu-Guard-Model/. To update after a code change, run the same command on the VM again.
 
-**Credit:** a B2s VM with its disk and public IP uses most of the $100 in about 3 months (see *Cost Management* in the portal). Stopping (deallocating) the VM stops the compute charge; the credit renews each year while you are a student. When the credit ends, Azure stops the VM; nothing is charged to you.
+**Credit:** a B2als_v2 VM with its disk and public IP uses most of the $100 in about 3 months (see *Cost Management* in the portal). Stopping (deallocating) the VM stops the compute charge; the credit renews each year while you are a student. When the credit ends, Azure stops the VM; nothing is charged to you.
 
 ## From the laptop: GitHub Pages plus a free tunnel (D61)
 
@@ -41,7 +41,7 @@ The page accepts only `https://*.trycloudflare.com` and `https://*.lhr.life` in 
 ## How the API key is kept secret
 
 - The web app is built with `GUARD_URL=/guard` and `DEMO_URL=/demo` and **no key** (checked: the key is in 0 files of the build). It calls the backend from `API_BASE` or `?api=`.
-- The key lives only in `.env` on the machine that runs the backend (on the Oracle VM, made by `deploy/vm/setup.sh`). guard-api, demo-rag and Ollama are not reachable from outside; only the proxy is (through Caddy or the tunnel).
+- The key lives only in `.env` on the machine that runs the backend (on the VM, made by `deploy/vm/setup.sh`). guard-api, demo-rag and Ollama are not reachable from outside; only the proxy is (through Caddy or the tunnel).
 - The proxy adds the key to scans and drops any key a browser sends. It exposes only `/guard/health`, `/guard/v1/scan`, `/demo/health`, `/demo/chat`, `/demo/chat/stream` (no `/v1/stats`, no batch, no API docs), and allows cross-origin calls only from `https://f243077-cell.github.io`.
 - Limits per visitor (first `X-Forwarded-For` address): 30 scans and 6 chat questions a minute; at most 2 chat answers run at once (`SCANS_PER_MINUTE`, `CHATS_PER_MINUTE`, `CHAT_CONCURRENCY`). Requests over 64 KB are refused.
 
